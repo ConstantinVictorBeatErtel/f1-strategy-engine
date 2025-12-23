@@ -1,0 +1,42 @@
+
+
+services:
+  postgres:
+    image: postgres:13
+    container_name: f1_postgres
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=f1_data
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.7.1
+    container_name: f1_mlflow
+    ports:
+      - "5001:5000"
+    environment:
+      - MLFLOW_BACKEND_STORE_URI=postgresql://user:password@postgres:5432/f1_data
+      - MLFLOW_ARTIFACT_ROOT=/mlflow/artifacts
+    depends_on:
+      - postgres
+    command: mlflow server --backend-store-uri postgresql://user:password@postgres:5432/f1_data --host 0.0.0.0 --port 5000
+
+  jupyter:
+    image: jupyter/scipy-notebook:latest
+    container_name: f1_jupyter
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./notebooks:/home/jovyan/work
+    environment:
+      - JUPYTER_TOKEN=f1racing
+    depends_on:
+      - postgres
+      - mlflow
+
+volumes:
+  postgres_data:
